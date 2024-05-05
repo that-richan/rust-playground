@@ -1,56 +1,50 @@
-use std::cmp::min;
+use crate::player::Player;
+use rand::Rng;
+use std::collections::HashMap;
+use std::{fs, io};
 
-#[derive(Debug)]
-enum PlayerHealth {
-    Alive { health: u32 },
-    Dead { time_of_death: String },
-}
-
-#[derive(Debug)]
-struct Player {
-    name: String,
-    health: PlayerHealth,
-}
-
-impl Player {
-    fn damage(&mut self, damage: u32) -> (u32, bool) {
-        match self.health {
-            PlayerHealth::Alive { ref mut health } => {
-                let damage_to_deal = min(damage, *health);
-
-                *health -= damage_to_deal;
-
-                if *health <= 0 {
-                    self.health = PlayerHealth::Dead {
-                        time_of_death: String::from("Now"),
-                    };
-                }
-
-                return (
-                    damage_to_deal,
-                    match self.health {
-                        PlayerHealth::Alive { health: _ } => false,
-                        PlayerHealth::Dead { time_of_death: _ } => true,
-                    },
-                );
-            }
-            _ => (0, true),
-        }
-    }
-
-    fn new(name: String) -> Player {
-        Player {
-            name,
-            health: PlayerHealth::Alive { health: 32 },
-        }
-    }
-}
+mod player;
 
 fn main() {
-    let mut player = Player::new("That Richan".to_string());
+    let players_file = "players.txt";
+    let players: Vec<Player> = read_players_from_file(players_file)
+        .expect(&format!("Failed to read '{players_file}' file"));
 
-    let (damage, is_dead) = player.damage(32);
-    println!("Dealt {} {} damage to {}", damage, is_dead, player.name);
+    let mut player_map: HashMap<String, Player> = HashMap::new();
 
-    println!("{:?}", player);
+    let string1 = String::from("Hello Nobr!");
+    println!("{}", string1.replace("N", "B"));
+
+    let first = players.get(0);
+    if let Some(player) = first {
+        println!("The first player is {}", player.name());
+    }
+
+    for player in players {
+        player_map.insert(player.name().clone(), player);
+    }
+
+    if let Some(favorite) = player_map.get("That Richan") {
+        println!("My favorite player: {:?}", favorite);
+    }
+
+    for (name, player) in &mut player_map {
+        let damage_to_deal = rand::thread_rng().gen_range(1..=36);
+        let (damage, is_dead) = player.damage(damage_to_deal);
+        println!("Dealt {} damage to {}.", damage, name);
+        if is_dead {
+            println!("The player {} has died.", name);
+        }
+    }
+
+    println!("{:?}", player_map);
+}
+
+fn read_players_from_file(file_name: &str) -> Result<Vec<Player>, io::Error> {
+    let file_contents = fs::read_to_string(file_name)?;
+
+    Ok(file_contents
+        .lines()
+        .map(|s| Player::new(s))
+        .collect())
 }
