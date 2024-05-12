@@ -14,6 +14,31 @@ impl PlayerHealth {
 
         0
     }
+
+    pub fn damage(&mut self, damage: u32) -> (u32, bool) {
+        match self {
+            PlayerHealth::Alive { ref mut health } => {
+                let damage_to_deal = min(damage, *health);
+
+                *health -= damage_to_deal;
+
+                if *health <= 0 {
+                    *self = PlayerHealth::Dead {
+                        time_of_death: String::from("Now"),
+                    };
+                }
+
+                return (
+                    damage_to_deal,
+                    match self {
+                        PlayerHealth::Alive { health: _ } => false,
+                        PlayerHealth::Dead { time_of_death: _ } => true,
+                    },
+                );
+            }
+            _ => (0, true),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -23,33 +48,12 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn damage(&mut self, damage: u32) -> (u32, bool) {
-        match self.health {
-            PlayerHealth::Alive { ref mut health } => {
-                let damage_to_deal = min(damage, *health);
-
-                *health -= damage_to_deal;
-
-                if *health <= 0 {
-                    self.health = PlayerHealth::Dead {
-                        time_of_death: String::from("Now"),
-                    };
-                }
-
-                return (
-                    damage_to_deal,
-                    match self.health {
-                        PlayerHealth::Alive { health: _ } => false,
-                        PlayerHealth::Dead { time_of_death: _ } => true,
-                    },
-                );
-            }
-            _ => (0, true),
-        }
-    }
-
     pub fn name(&self) -> &String {
         &self.name
+    }
+
+    pub fn health(&mut self) -> &mut PlayerHealth {
+        &mut self.health
     }
 
     pub fn new(name: &str) -> Player {
@@ -72,7 +76,7 @@ mod tests {
     fn no_damage() {
         let (mut player) = setup();
 
-        assert_eq!(player.damage(0), (0, false));
+        assert_eq!(player.health.damage(0), (0, false));
     }
 
     #[test]
@@ -80,7 +84,7 @@ mod tests {
         let (mut player) = setup();
 
         let damage = player.health.amount() - 1;
-        assert_eq!(player.damage(damage), (damage, false));
+        assert_eq!(player.health.damage(damage), (damage, false));
     }
 
     #[test]
@@ -88,7 +92,7 @@ mod tests {
         let (mut player) = setup();
 
         let health_amount = player.health.amount();
-        assert_eq!(player.damage(health_amount), (health_amount, true));
+        assert_eq!(player.health.damage(health_amount), (health_amount, true));
     }
 
     #[test]
@@ -96,7 +100,10 @@ mod tests {
         let (mut player) = setup();
 
         let health_amount = player.health.amount();
-        assert_eq!(player.damage(health_amount * 2), (health_amount, true));
+        assert_eq!(
+            player.health.damage(health_amount * 2),
+            (health_amount, true)
+        );
     }
 
     #[test]

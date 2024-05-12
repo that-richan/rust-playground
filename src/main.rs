@@ -30,7 +30,7 @@ fn main() {
 
     for (name, player) in &mut player_map {
         let damage_to_deal = rand::thread_rng().gen_range(1..=36);
-        let (damage, is_dead) = player.damage(damage_to_deal);
+        let (damage, is_dead) = player.health().damage(damage_to_deal);
         println!("Dealt {} damage to {}.", damage, name);
         if is_dead {
             println!("The player {} has died.", name);
@@ -43,8 +43,5 @@ fn main() {
 fn read_players_from_file(file_name: &str) -> Result<Vec<Player>, io::Error> {
     let file_contents = fs::read_to_string(file_name)?;
 
-    Ok(file_contents
-        .lines()
-        .map(|s| Player::new(s))
-        .collect())
+    Ok(file_contents.lines().map(|s| Player::new(s)).collect())
 }
